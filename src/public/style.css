@@ -222,6 +222,21 @@ tr:hover {
   white-space: nowrap;
 }
 
+.monitor-url a {
+  color: #64748b;
+  text-decoration: none;
+}
+
+.monitor-url a:hover {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+.monitor-url a::after {
+  content: ' ↗';
+  font-size: 11px;
+}
+
 .actions {
   display: flex;
   gap: 6px;

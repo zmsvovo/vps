@@ -105,7 +105,7 @@ function renderMonitors(monitors) {
         </td>
         <td>
           <div class="monitor-name">${escHtml(m.name)}</div>
-          <div class="monitor-url" title="${escHtml(m.url)}">${escHtml(m.url)}</div>
+          <div class="monitor-url"><a href="${escHtml(m.url)}" target="_blank" rel="noopener" title="${escHtml(m.url)}">${escHtml(m.url)}</a></div>
           ${m.error_message ? `<div style="color:#f59e0b;font-size:12px;margin-top:2px">${escHtml(m.error_message)}</div>` : ''}
         </td>
         <td>

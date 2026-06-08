@@ -98,40 +98,150 @@ function renderMonitors(monitors) {
   let html = '';
   for (const m of monitors) {
     html += `
-      <tr data-id="${m.id}">
-        <td>
-          <span class="status-dot ${m.last_status}"></span>
-          <span class="status-label">${statusLabel(m.last_status)}</span>
-        </td>
-        <td>
-          <div class="monitor-name">${escHtml(m.name)}</div>
-          <div class="monitor-url"><a href="${escHtml(m.url)}" target="_blank" rel="noopener" title="${escHtml(m.url)}">${escHtml(m.url)}</a></div>
-          ${m.error_message ? `<div style="color:#f59e0b;font-size:12px;margin-top:2px">${escHtml(m.error_message)}</div>` : ''}
-        </td>
-        <td>
-          <label class="toggle">
-            <input type="checkbox" ${m.is_active ? 'checked' : ''} onchange="toggleMonitor(${m.id})">
-            <span class="slider"></span>
-          </label>
-          ${m.is_active ? '<span style="font-size:12px;color:#22c55e">启用</span>' : '<span style="font-size:12px;color:#64748b">暂停</span>'}
-        </td>
-        <td style="font-size:12px;color:#94a3b8">${timeAgo(m.last_checked_at)}</td>
-        <td>
-          <div class="actions">
-            <button class="btn btn-sm btn-outline" onclick="toggleLogs(${m.id})">日志</button>
-            <button class="btn btn-sm btn-danger" onclick="deleteMonitor(${m.id})">删除</button>
+      <div class="swipe-row" data-id="${m.id}">
+        <div class="swipe-inner">
+          <div class="swipe-front">
+            <div class="row-status">
+              <span class="status-dot ${m.last_status}"></span>
+              <span class="status-label">${statusLabel(m.last_status)}</span>
+            </div>
+            <div class="row-info">
+              <div class="monitor-name">${escHtml(m.name)}</div>
+              <div class="monitor-url" title="点击复制链接">${escHtml(m.url)}</div>
+              ${m.error_message ? `<div class="row-error">${escHtml(m.error_message)}</div>` : ''}
+            </div>
+            <div class="row-toggle">
+              <label class="toggle">
+                <input type="checkbox" ${m.is_active ? 'checked' : ''} onchange="toggleMonitor(${m.id})">
+                <span class="slider"></span>
+              </label>
+              ${m.is_active ? '<span class="toggle-label on">启用</span>' : '<span class="toggle-label off">暂停</span>'}
+            </div>
+            <div class="row-time">${timeAgo(m.last_checked_at)}</div>
+            <div class="row-actions">
+              <button class="btn btn-sm btn-outline" onclick="openUrl(${m.id})">跳转</button>
+              <button class="btn btn-sm btn-outline" onclick="toggleLogs(${m.id})">日志</button>
+            </div>
           </div>
-        </td>
-      </tr>
-      <tr id="logs-${m.id}" class="logs-panel" style="display:none">
-        <td colspan="5">
+          <div class="swipe-back">
+            <button class="btn-del" onclick="deleteMonitor(${m.id})">删除</button>
+          </div>
+        </div>
+        <div id="logs-${m.id}" class="logs-panel" style="display:none">
           <div id="logs-content-${m.id}">加载中...</div>
-        </td>
-      </tr>
+        </div>
+      </div>
     `;
   }
   monitorList.innerHTML = html;
   updateStats(monitors);
+
+  // 绑定滑动事件
+  document.querySelectorAll('.swipe-row').forEach(initSwipe);
+}
+
+// ---- Swipe ----
+let activeSwipeRow = null;
+
+function initSwipe(row) {
+  const inner = row.querySelector('.swipe-inner');
+  const threshold = 60;
+  let startX = 0;
+  let currentX = 0;
+  let isDragging = false;
+
+  function onStart(x) {
+    // 收起其他展开的
+    if (activeSwipeRow && activeSwipeRow !== row) {
+      activeSwipeRow.querySelector('.swipe-inner').style.transform = '';
+      activeSwipeRow.classList.remove('swiping');
+    }
+    startX = x;
+    isDragging = true;
+    row.classList.add('swiping');
+    inner.style.transition = 'none';
+  }
+
+  function onMove(x) {
+    if (!isDragging) return;
+    currentX = x - startX;
+    if (currentX > 0) currentX = 0; // 只往左滑
+    if (currentX < -120) currentX = -120;
+    inner.style.transform = `translateX(${currentX}px)`;
+  }
+
+  function onEnd() {
+    if (!isDragging) return;
+    isDragging = false;
+    inner.style.transition = 'transform 0.2s ease';
+
+    if (currentX < -threshold) {
+      inner.style.transform = 'translateX(-80px)';
+      activeSwipeRow = row;
+      row.classList.add('revealed');
+    } else {
+      inner.style.transform = '';
+      row.classList.remove('revealed');
+      activeSwipeRow = null;
+    }
+    row.classList.remove('swiping');
+  }
+
+  // Touch events
+  row.addEventListener('touchstart', (e) => {
+    onStart(e.touches[0].clientX);
+  }, { passive: true });
+  row.addEventListener('touchmove', (e) => {
+    onMove(e.touches[0].clientX);
+  }, { passive: true });
+  row.addEventListener('touchend', onEnd, { passive: true });
+
+  // Mouse events (桌面拖拽)
+  row.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    onStart(e.clientX);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  });
+
+  function onMouseMove(e) { onMove(e.clientX); }
+  function onMouseUp() {
+    onEnd();
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+  }
+
+  // URL 点击复制
+  const urlEl = row.querySelector('.monitor-url');
+  urlEl.addEventListener('click', () => {
+    navigator.clipboard.writeText(urlEl.textContent).then(() => {
+      const orig = urlEl.textContent;
+      urlEl.textContent = '✅ 已复制';
+      urlEl.classList.add('copied');
+      setTimeout(() => {
+        urlEl.textContent = orig;
+        urlEl.classList.remove('copied');
+      }, 1200);
+    }).catch(() => {
+      // fallback: 选中文本
+      const range = document.createRange();
+      range.selectNodeContents(urlEl);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    });
+  });
+}
+
+// 收起滑动
+function collapseSwipe() {
+  if (activeSwipeRow) {
+    const inner = activeSwipeRow.querySelector('.swipe-inner');
+    inner.style.transition = 'transform 0.2s ease';
+    inner.style.transform = '';
+    activeSwipeRow.classList.remove('revealed');
+    activeSwipeRow = null;
+  }
 }
 
 function updateStats(monitors) {
@@ -169,6 +279,14 @@ function escHtml(s) {
 }
 
 // ---- Monitor actions ----
+function openUrl(id) {
+  // 从数据中找 URL
+  fetch('/api/monitors').then(r => r.json()).then(monitors => {
+    const m = monitors.find(x => x.id === id);
+    if (m) window.open(m.url, '_blank');
+  });
+}
+
 async function toggleMonitor(id) {
   await fetch(`/api/monitors/${id}/toggle`, { method: 'PUT' });
   loadMonitors();
@@ -325,37 +443,27 @@ saveIntervalBtn.addEventListener('click', async () => {
 
 // ---- Socket.IO events ----
 socket.on('check:result', (data) => {
-  // 更新列表中对应行的状态显示
-  const rows = monitorList.querySelectorAll('tr');
-  for (const row of rows) {
-    if (row.dataset.id == data.id) {
-      const dot = row.querySelector('.status-dot');
-      const label = row.querySelector('.status-label');
-      if (dot) {
-        dot.className = `status-dot ${data.status}`;
-      }
-      if (label) {
-        label.textContent = statusLabel(data.status);
-      }
-      // 更新 timeAgo
-      const tds = row.querySelectorAll('td');
-      if (tds.length >= 4) {
-        tds[3].textContent = timeAgo(data.checkedAt);
-      }
-      // 如果有错误信息
+  const row = monitorList.querySelector(`.swipe-row[data-id="${data.id}"]`);
+  if (row) {
+    const dot = row.querySelector('.status-dot');
+    const label = row.querySelector('.status-label');
+    if (dot) dot.className = `status-dot ${data.status}`;
+    if (label) label.textContent = statusLabel(data.status);
+
+    const timeEl = row.querySelector('.row-time');
+    if (timeEl) timeEl.textContent = timeAgo(data.checkedAt);
+
+    // 更新错误信息
+    const infoEl = row.querySelector('.row-info');
+    if (infoEl) {
+      const existing = infoEl.querySelector('.row-error');
+      if (existing) existing.remove();
       if (data.error) {
-        const nameCell = tds[1];
-        if (nameCell) {
-          const existing = nameCell.querySelector('.error-msg');
-          if (existing) existing.remove();
-          const errDiv = document.createElement('div');
-          errDiv.className = 'error-msg';
-          errDiv.style.cssText = 'color:#f59e0b;font-size:12px;margin-top:2px';
-          errDiv.textContent = data.error;
-          nameCell.appendChild(errDiv);
-        }
+        const errDiv = document.createElement('div');
+        errDiv.className = 'row-error';
+        errDiv.textContent = data.error;
+        infoEl.appendChild(errDiv);
       }
-      break;
     }
   }
   loadMonitors(); // 刷新统计数据
@@ -379,3 +487,10 @@ socket.on('settings:update', (data) => {
 // ---- Init ----
 requestNotificationPermission();
 loadMonitors();
+
+// 点击其他地方收起滑动
+document.addEventListener('click', (e) => {
+  if (activeSwipeRow && !activeSwipeRow.contains(e.target)) {
+    collapseSwipe();
+  }
+});

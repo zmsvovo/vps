@@ -40,18 +40,14 @@
 
     <!-- Monitor list -->
     <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:40px">状态</th>
-            <th>名称</th>
-            <th>链接</th>
-            <th style="width:100px">上次检测</th>
-            <th style="width:50px">操作</th>
-          </tr>
-        </thead>
-        <tbody id="monitorList"></tbody>
-      </table>
+      <div class="list-header">
+        <span class="h-status">状态</span>
+        <span class="h-info">名称 / 链接</span>
+        <span class="h-toggle">监控</span>
+        <span class="h-time">上次检测</span>
+        <span class="h-actions">操作</span>
+      </div>
+      <div id="monitorList"></div>
       <div id="emptyState" class="empty-state">
         <div style="font-size:40px;margin-bottom:8px">🔍</div>
         <p>暂无监控链接，下方添加</p>

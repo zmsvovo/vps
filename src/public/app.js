@@ -1,6 +1,19 @@
 /* global io */
 const socket = io();
 
+// 东八区时间格式化
+const TZ = 'Asia/Shanghai';
+
+function formatTimeUTC8(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleString('zh-CN', { timeZone: TZ });
+}
+
+function formatDateUTC8(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('zh-CN', { timeZone: TZ });
+}
+
 // DOM refs
 const monitorList = document.getElementById('monitorList');
 const emptyState = document.getElementById('emptyState');
@@ -269,7 +282,7 @@ function timeAgo(iso) {
   if (mins < 60) return `${mins} 分钟前`;
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours} 小时前`;
-  return new Date(iso).toLocaleDateString('zh-CN');
+  return formatDateUTC8(iso);
 }
 
 function escHtml(s) {
@@ -312,7 +325,7 @@ async function toggleLogs(id) {
       content.innerHTML = logs.map(l => {
         const cls = l.status === 'in_stock' ? 'color:#22c55e' : l.status === 'out_of_stock' ? 'color:#ef4444' : 'color:#f59e0b';
         return `<div class="log-entry">
-          <span class="log-time">${new Date(l.checked_at).toLocaleString('zh-CN')}</span>
+          <span class="log-time">${formatTimeUTC8(l.checked_at)}</span>
           <span class="log-status" style="${cls}">${statusLabel(l.status)}</span>
           <span>${escHtml(l.message || '')}</span>
         </div>`;

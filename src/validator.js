@@ -1,6 +1,10 @@
 const { checkStock } = require('./checker');
 
-const WHMCS_URL_PATTERN = /cmd=cart&action=add/i;
+// WHMCS 商品页常见链接格式:
+//   ?cmd=cart&action=add&id=xxx
+//   cart.php?a=add&pid=xxx
+//   cart.php?a=confproduct&i=xxx
+const WHMCS_URL_PATTERN = /(?:cmd=cart&action=add|cart\.php\?(?:a=add&pid|a=confproduct&i)=)/i;
 
 /**
  * 验证 URL 是否有效

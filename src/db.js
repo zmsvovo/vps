@@ -41,6 +41,7 @@ function saveDb() {
 }
 
 function initSchema() {
+  // 用 strftime 显式加 Z 后缀，否则 JS 解析时会当成本地时间
   db.run(`
     CREATE TABLE IF NOT EXISTS monitors (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,7 +52,7 @@ function initSchema() {
       last_checked_at TEXT,
       last_in_stock_at TEXT,
       error_message TEXT,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
     )
   `);
 
@@ -61,7 +62,7 @@ function initSchema() {
       monitor_id INTEGER NOT NULL,
       status TEXT NOT NULL,
       message TEXT,
-      checked_at TEXT NOT NULL DEFAULT (datetime('now')),
+      checked_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
       FOREIGN KEY (monitor_id) REFERENCES monitors(id) ON DELETE CASCADE
     )
   `);
@@ -92,7 +93,7 @@ function getMonitor(id) {
 }
 
 function addMonitor(name, url) {
-  db.run('INSERT INTO monitors (name, url) VALUES (?, ?)', [name, url]);
+  db.run('INSERT INTO monitors (name, url, created_at) VALUES (?, ?, ?)', [name, url, new Date().toISOString()]);
   saveDb();
   const result = db.exec('SELECT last_insert_rowid()');
   return result[0].values[0][0];
@@ -134,8 +135,8 @@ function updateMonitorStatus(id, status, errorMessage) {
 // ---- check_logs ----
 function addCheckLog(monitorId, status, message) {
   db.run(
-    'INSERT INTO check_logs (monitor_id, status, message) VALUES (?, ?, ?)',
-    [monitorId, status, message || null]
+    'INSERT INTO check_logs (monitor_id, status, message, checked_at) VALUES (?, ?, ?, ?)',
+    [monitorId, status, message || null, new Date().toISOString()]
   );
   saveDb();
 }

@@ -4,14 +4,24 @@ const socket = io();
 // 东八区时间格式化
 const TZ = 'Asia/Shanghai';
 
+// SQLite 的 datetime('now') 生成的字符串不带时区后缀
+// 旧数据可能缺少 'Z'，浏览器会当成本地时间解析，导致时间偏移
+function fixISO(s) {
+  if (!s) return s;
+  // 已有时区标记的不动（Z 或 ±HH:MM）
+  if (/[Zz]$/.test(s) || /[+-]\d{2}:\d{2}$/.test(s) || /[+-]\d{4}$/.test(s)) return s;
+  // 补齐 UTC 标记
+  return s + 'Z';
+}
+
 function formatTimeUTC8(iso) {
   if (!iso) return '';
-  return new Date(iso).toLocaleString('zh-CN', { timeZone: TZ });
+  return new Date(fixISO(iso)).toLocaleString('zh-CN', { timeZone: TZ });
 }
 
 function formatDateUTC8(iso) {
   if (!iso) return '';
-  return new Date(iso).toLocaleDateString('zh-CN', { timeZone: TZ });
+  return new Date(fixISO(iso)).toLocaleDateString('zh-CN', { timeZone: TZ });
 }
 
 // DOM refs

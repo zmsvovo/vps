@@ -329,15 +329,13 @@ async function toggleLogs(id) {
     const res = await fetch(`/api/monitors/${id}/logs`);
     const logs = await res.json();
     const content = document.getElementById(`logs-content-${id}`);
-    if (logs.length === 0) {
-      content.textContent = '暂无检测记录';
+    const inStockLogs = logs.filter(l => l.status === 'in_stock');
+    if (inStockLogs.length === 0) {
+      content.textContent = '暂无有货记录';
     } else {
-      content.innerHTML = logs.map(l => {
-        const cls = l.status === 'in_stock' ? 'color:#22c55e' : l.status === 'out_of_stock' ? 'color:#ef4444' : 'color:#f59e0b';
+      content.innerHTML = inStockLogs.map(l => {
         return `<div class="log-entry">
           <span class="log-time">${formatTimeUTC8(l.checked_at)}</span>
-          <span class="log-status" style="${cls}">${statusLabel(l.status)}</span>
-          <span>${escHtml(l.message || '')}</span>
         </div>`;
       }).join('');
     }

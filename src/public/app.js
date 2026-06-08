@@ -140,7 +140,7 @@ function renderMonitors(monitors) {
               </label>
               ${m.is_active ? '<span class="toggle-label on">启用</span>' : '<span class="toggle-label off">暂停</span>'}
             </div>
-            <div class="row-time">${timeAgo(m.last_checked_at)}</div>
+            <div class="row-time" data-checked-at="${m.last_checked_at || ''}">${timeAgo(m.last_checked_at)}</div>
             <div class="row-actions">
               <button class="btn btn-sm btn-outline" onclick="openUrl(${m.id})">跳转</button>
               <button class="btn btn-sm btn-outline" onclick="toggleLogs(${m.id})">日志</button>
@@ -472,7 +472,10 @@ socket.on('check:result', (data) => {
     if (label) label.textContent = statusLabel(data.status);
 
     const timeEl = row.querySelector('.row-time');
-    if (timeEl) timeEl.textContent = timeAgo(data.checkedAt);
+    if (timeEl) {
+      timeEl.textContent = timeAgo(data.checkedAt);
+      timeEl.setAttribute('data-checked-at', data.checkedAt || '');
+    }
 
     // 更新错误信息
     const infoEl = row.querySelector('.row-info');
@@ -508,6 +511,14 @@ socket.on('settings:update', (data) => {
 // ---- Init ----
 requestNotificationPermission();
 loadMonitors();
+
+// 每 30 秒刷新相对时间显示
+setInterval(() => {
+  document.querySelectorAll('.row-time[data-checked-at]').forEach(el => {
+    const iso = el.getAttribute('data-checked-at');
+    if (iso) el.textContent = timeAgo(iso);
+  });
+}, 30000);
 
 // 点击其他地方收起滑动
 document.addEventListener('click', (e) => {

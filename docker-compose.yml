@@ -1,0 +1,8 @@
+services:
+  monitor:
+    build: .
+    ports:
+      - "9911:9911"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

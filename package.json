@@ -1,0 +1,14 @@
+{
+  "name": "vps-stock-monitor",
+  "version": "1.0.0",
+  "description": "VPS 库存监控工具 - 监控 WHMCS 商品库存状态",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "sql.js": "^1.11.0",
+    "express": "^4.21.0",
+    "socket.io": "^4.8.0"
+  }
+}

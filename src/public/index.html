@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VPS 库存监控</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1>📦 VPS 库存监控</h1>
+      <div class="header-controls">
+        <label for="interval">检测间隔</label>
+        <input type="number" id="interval" min="1" max="1440" value="10">
+        <label>分钟</label>
+        <button class="btn btn-primary btn-sm" id="saveInterval">保存</button>
+      </div>
+    </div>
+
+    <!-- Notification banner -->
+    <div id="notificationBanner"></div>
+
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat-card green">
+        <div class="number" id="statStock">0</div>
+        <div class="label">有货</div>
+      </div>
+      <div class="stat-card red">
+        <div class="number" id="statOut">0</div>
+        <div class="label">缺货</div>
+      </div>
+      <div class="stat-card gray">
+        <div class="number" id="statError">0</div>
+        <div class="label">异常</div>
+      </div>
+    </div>
+
+    <!-- Monitor list -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:40px">状态</th>
+            <th>名称</th>
+            <th>链接</th>
+            <th style="width:100px">上次检测</th>
+            <th style="width:50px">操作</th>
+          </tr>
+        </thead>
+        <tbody id="monitorList"></tbody>
+      </table>
+      <div id="emptyState" class="empty-state">
+        <div style="font-size:40px;margin-bottom:8px">🔍</div>
+        <p>暂无监控链接，下方添加</p>
+      </div>
+    </div>
+
+    <!-- Add form -->
+    <div class="add-section">
+      <h3>添加监控</h3>
+      <div class="add-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label>名称</label>
+            <input type="text" id="newName" placeholder="例如: ZgoCloud Starter">
+          </div>
+          <div class="form-group">
+            <label>WHMCS 商品链接</label>
+            <input type="url" id="newUrl" placeholder="https://clients.zgovps.com/?cmd=cart&action=add&id=134">
+          </div>
+        </div>
+        <div id="addStatus" class="form-error" style="display:none"></div>
+        <div class="form-actions">
+          <button class="btn btn-outline btn-sm" id="validateBtn">验证链接</button>
+          <button class="btn btn-primary btn-sm" id="addBtn">添加</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

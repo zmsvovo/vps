@@ -4,7 +4,45 @@ const { checkStock } = require('./checker');
 //   ?cmd=cart&action=add&id=xxx
 //   cart.php?a=add&pid=xxx
 //   cart.php?a=confproduct&i=xxx
-const WHMCS_URL_PATTERN = /(?:cmd=cart&action=add|cart\.php\?(?:a=add&pid|a=confproduct&i)=)/i;
+//   /store/group/product
+const STORE_PRODUCT_PATH_PATTERN = /^\/store\/[^/?#]+\/[^/?#]+\/?$/i;
+
+function isSupportedProductUrl(rawUrl) {
+  let parsedUrl;
+
+  try {
+    parsedUrl = new URL(rawUrl);
+  } catch (err) {
+    return false;
+  }
+
+  if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+    return false;
+  }
+
+  if (isWhmcsCartUrl(parsedUrl) || STORE_PRODUCT_PATH_PATTERN.test(parsedUrl.pathname)) {
+    return true;
+  }
+
+  return false;
+}
+
+function isWhmcsCartUrl(parsedUrl) {
+  const params = parsedUrl.searchParams;
+  const cmd = (params.get('cmd') || '').toLowerCase();
+  const action = (params.get('action') || '').toLowerCase();
+
+  if (cmd === 'cart' && action === 'add') {
+    return true;
+  }
+
+  if (!/\/cart\.php$/i.test(parsedUrl.pathname)) {
+    return false;
+  }
+
+  const cartAction = (params.get('a') || '').toLowerCase();
+  return (cartAction === 'add' && params.has('pid')) || (cartAction === 'confproduct' && params.has('i'));
+}
 
 /**
  * 验证 URL 是否有效
@@ -18,12 +56,8 @@ async function validateUrl(url) {
 
   url = url.trim();
 
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    return { valid: false, error: 'URL 必须以 http:// 或 https:// 开头' };
-  }
-
-  if (!WHMCS_URL_PATTERN.test(url)) {
-    return { valid: false, error: '链接不是有效的 WHMCS 商品页面（缺少 ?cmd=cart&action=add）' };
+  if (!isSupportedProductUrl(url)) {
+    return { valid: false, error: '链接不是有效的 WHMCS 商品页面（支持购物车参数链接或 /store/分类/商品 链接）' };
   }
 
   try {
@@ -47,4 +81,4 @@ async function validateUrl(url) {
   }
 }
 
-module.exports = { validateUrl };
+module.exports = { validateUrl, isSupportedProductUrl };

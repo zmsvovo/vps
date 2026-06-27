@@ -2,6 +2,7 @@ const http = require('http');
 const https = require('https');
 
 const TIMEOUT_MS = 15000;
+const MAX_REDIRECTS = 5;
 
 /**
  * 检查单个 WHMCS 商品页面库存
@@ -9,19 +10,44 @@ const TIMEOUT_MS = 15000;
  * @returns {Promise<{inStock: boolean, title: string, error?: string}>}
  */
 function checkStock(url) {
-  return new Promise((resolve) => {
-    const isHttps = url.startsWith('https');
-    const client = isHttps ? https : http;
+  return requestStockPage(url, 0);
+}
 
-    const req = client.get(url, { timeout: TIMEOUT_MS }, (res) => {
-      if (res.statusCode !== 200) {
-        resolve({ inStock: false, title: '', error: `HTTP ${res.statusCode}` });
+function requestStockPage(url, redirectCount) {
+  return new Promise((resolve) => {
+    let parsedUrl;
+
+    try {
+      parsedUrl = new URL(url);
+    } catch (err) {
+      resolve({ inStock: false, title: '', error: 'URL 格式无效' });
+      return;
+    }
+
+    const client = parsedUrl.protocol === 'https:' ? https : http;
+
+    const req = client.get(parsedUrl, { timeout: TIMEOUT_MS }, (res) => {
+      if (isRedirect(res.statusCode) && res.headers.location) {
+        res.resume();
+
+        if (redirectCount >= MAX_REDIRECTS) {
+          resolve({ inStock: false, title: '', error: '重定向次数过多' });
+          return;
+        }
+
+        const nextUrl = new URL(res.headers.location, parsedUrl).toString();
+        resolve(requestStockPage(nextUrl, redirectCount + 1));
         return;
       }
 
-      let body = '';
-      res.on('data', (chunk) => { body += chunk; });
-      res.on('end', () => {
+      if (res.statusCode !== 200) {
+        readResponseBody(res, (body) => {
+          resolve({ inStock: false, title: '', error: describeHttpError(res.statusCode, body) });
+        });
+        return;
+      }
+
+      readResponseBody(res, (body) => {
         resolve(parsePage(body));
       });
     });
@@ -35,6 +61,24 @@ function checkStock(url) {
       resolve({ inStock: false, title: '', error: '请求超时' });
     });
   });
+}
+
+function isRedirect(statusCode) {
+  return [301, 302, 303, 307, 308].includes(statusCode);
+}
+
+function readResponseBody(res, onEnd) {
+  let body = '';
+  res.on('data', (chunk) => { body += chunk; });
+  res.on('end', () => onEnd(body));
+}
+
+function describeHttpError(statusCode, body) {
+  if (statusCode === 403 && /cloudflare|just a moment|challenge-platform|cf-browser-verification/i.test(body)) {
+    return 'HTTP 403（Cloudflare 访问验证阻止了检测）';
+  }
+
+  return `HTTP ${statusCode}`;
 }
 
 /**

@@ -38,6 +38,12 @@ const addBtn = document.getElementById('addBtn');
 const newName = document.getElementById('newName');
 const newUrl = document.getElementById('newUrl');
 const addStatus = document.getElementById('addStatus');
+const telegramEnabled = document.getElementById('telegramEnabled');
+const telegramToken = document.getElementById('telegramToken');
+const telegramChatId = document.getElementById('telegramChatId');
+const telegramStatus = document.getElementById('telegramStatus');
+const saveTelegramBtn = document.getElementById('saveTelegram');
+const testTelegramBtn = document.getElementById('testTelegram');
 
 // ---- Notification permission ----
 function requestNotificationPermission() {
@@ -462,6 +468,100 @@ saveIntervalBtn.addEventListener('click', async () => {
   }
 });
 
+// ---- Telegram ----
+function applyTelegramSettings(data) {
+  telegramEnabled.checked = data.enabled !== false;
+  telegramChatId.value = data.chat_id || '';
+  telegramToken.value = '';
+  telegramToken.placeholder = data.bot_token_configured ? '已保存，留空保持不变' : '请输入 Bot Token';
+}
+
+async function loadTelegramSettings() {
+  try {
+    const res = await fetch('/api/telegram/settings');
+    const data = await res.json();
+    if (res.ok) {
+      applyTelegramSettings(data);
+    }
+  } catch (err) {
+    showTelegramStatus('error', 'Telegram 配置加载失败');
+  }
+}
+
+function showTelegramStatus(type, msg) {
+  telegramStatus.textContent = (type === 'success' ? '✅ ' : '❌ ') + msg;
+  telegramStatus.className = type === 'success' ? 'form-success' : 'form-error';
+  telegramStatus.style.display = 'block';
+}
+
+function buildTelegramSettingsBody() {
+  const token = telegramToken.value.trim();
+  const body = {
+    enabled: telegramEnabled.checked,
+    chat_id: telegramChatId.value.trim(),
+  };
+  if (token) {
+    body.bot_token = token;
+  }
+  return body;
+}
+
+async function persistTelegramSettings(showSuccess) {
+  const res = await fetch('/api/telegram/settings', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(buildTelegramSettingsBody()),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Telegram 配置保存失败');
+  }
+  applyTelegramSettings(data);
+  if (showSuccess) {
+    showTelegramStatus('success', 'Telegram 配置已保存');
+  }
+  return data;
+}
+
+saveTelegramBtn.addEventListener('click', async () => {
+  saveTelegramBtn.disabled = true;
+  saveTelegramBtn.textContent = '保存中...';
+  telegramStatus.style.display = 'none';
+
+  try {
+    await persistTelegramSettings(true);
+  } catch (err) {
+    showTelegramStatus('error', err.message || 'Telegram 配置保存失败');
+  } finally {
+    saveTelegramBtn.disabled = false;
+    saveTelegramBtn.textContent = '保存 Telegram';
+  }
+});
+
+testTelegramBtn.addEventListener('click', async () => {
+  testTelegramBtn.disabled = true;
+  saveTelegramBtn.disabled = true;
+  testTelegramBtn.textContent = '发送中...';
+  telegramStatus.style.display = 'none';
+
+  try {
+    await persistTelegramSettings(false);
+    const res = await fetch('/api/telegram/test', { method: 'POST' });
+    const data = await res.json();
+    if (res.ok) {
+      showTelegramStatus('success', data.message || '测试消息已发送');
+    } else {
+      showTelegramStatus('error', data.error || '测试消息发送失败');
+    }
+  } catch (err) {
+    showTelegramStatus('error', err.message || '测试消息发送失败');
+  } finally {
+    testTelegramBtn.disabled = false;
+    saveTelegramBtn.disabled = false;
+    testTelegramBtn.textContent = '发送测试消息';
+  }
+});
+
 // ---- Socket.IO events ----
 socket.on('check:result', (data) => {
   const row = monitorList.querySelector(`.swipe-row[data-id="${data.id}"]`);
@@ -508,9 +608,14 @@ socket.on('settings:update', (data) => {
   intervalInput.value = data.interval_minutes;
 });
 
+socket.on('telegram:update', (data) => {
+  applyTelegramSettings(data);
+});
+
 // ---- Init ----
 requestNotificationPermission();
 loadMonitors();
+loadTelegramSettings();
 
 // 每 30 秒刷新相对时间显示
 setInterval(() => {

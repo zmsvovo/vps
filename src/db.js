@@ -172,6 +172,27 @@ function getIntervalMinutes() {
   return parseInt(val, 10) || 10;
 }
 
+function getTelegramSettings() {
+  const enabled = getSetting('telegram_enabled');
+  return {
+    enabled: enabled === null ? true : enabled === '1',
+    bot_token: getSetting('telegram_bot_token') || '',
+    chat_id: getSetting('telegram_chat_id') || '',
+  };
+}
+
+function setTelegramSettings(settings) {
+  if (Object.prototype.hasOwnProperty.call(settings, 'enabled')) {
+    setSetting('telegram_enabled', settings.enabled ? '1' : '0');
+  }
+  if (Object.prototype.hasOwnProperty.call(settings, 'bot_token')) {
+    setSetting('telegram_bot_token', settings.bot_token);
+  }
+  if (Object.prototype.hasOwnProperty.call(settings, 'chat_id')) {
+    setSetting('telegram_chat_id', settings.chat_id);
+  }
+}
+
 // ---- helpers ----
 const MONITOR_COLUMNS = ['id', 'name', 'url', 'is_active', 'last_status', 'last_checked_at', 'last_in_stock_at', 'error_message', 'created_at'];
 
@@ -199,4 +220,6 @@ module.exports = {
   getSetting,
   setSetting,
   getIntervalMinutes,
+  getTelegramSettings,
+  setTelegramSettings,
 };

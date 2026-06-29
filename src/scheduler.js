@@ -1,5 +1,6 @@
 const db = require('./db');
 const { checkStock } = require('./checker');
+const { sendStockChangeNotification } = require('./telegram');
 
 class Scheduler {
   constructor(io) {
@@ -53,6 +54,14 @@ class Scheduler {
             url: monitor.url,
             status: newStatus,
             title: result.title,
+          });
+
+          sendStockChangeNotification({
+            monitor,
+            status: newStatus,
+            title: result.title,
+          }).catch(err => {
+            console.error('Telegram 通知发送失败:', err.message);
           });
         }
       } catch (err) {

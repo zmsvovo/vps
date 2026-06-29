@@ -75,6 +75,33 @@
         </div>
       </div>
     </div>
+
+    <!-- Telegram settings -->
+    <div class="add-section">
+      <h3>Telegram 通知</h3>
+      <div class="add-form">
+        <label class="form-check">
+          <input type="checkbox" id="telegramEnabled" checked>
+          <span>启用 Telegram 通知</span>
+        </label>
+        <div class="form-row">
+          <div class="form-group">
+            <label>机器人 Token</label>
+            <input type="password" id="telegramToken" placeholder="请输入 Bot Token">
+            <div class="form-hint">保存后留空表示继续使用已保存的 token。</div>
+          </div>
+          <div class="form-group">
+            <label>Chat ID</label>
+            <input type="text" id="telegramChatId" placeholder="例如: 123456789 或 @channel">
+          </div>
+        </div>
+        <div id="telegramStatus" class="form-error" style="display:none"></div>
+        <div class="form-actions">
+          <button class="btn btn-primary btn-sm" id="saveTelegram">保存 Telegram</button>
+          <button class="btn btn-outline btn-sm" id="testTelegram">发送测试消息</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>

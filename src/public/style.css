@@ -413,6 +413,26 @@ body {
   border-color: #3b82f6;
 }
 
+.form-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e2e8f0;
+  font-size: 14px;
+}
+
+.form-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: #22c55e;
+}
+
+.form-hint {
+  color: #64748b;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
 .form-actions {
   display: flex;
   gap: 8px;

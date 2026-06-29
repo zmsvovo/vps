@@ -5,6 +5,11 @@ const { Server } = require('socket.io');
 const db = require('./db');
 const { validateUrl } = require('./validator');
 const Scheduler = require('./scheduler');
+const {
+  getPublicTelegramSettings,
+  saveTelegramSettings,
+  sendTelegramTestMessage,
+} = require('./telegram');
 
 const PORT = 9911;
 const app = express();
@@ -93,6 +98,29 @@ app.put('/api/settings', (req, res) => {
   scheduler.restart();
   io.emit('settings:update', { interval_minutes: val });
   res.json({ interval_minutes: val });
+});
+
+app.get('/api/telegram/settings', (req, res) => {
+  res.json(getPublicTelegramSettings());
+});
+
+app.put('/api/telegram/settings', (req, res) => {
+  try {
+    const settings = saveTelegramSettings(req.body);
+    io.emit('telegram:update', settings);
+    res.json(settings);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post('/api/telegram/test', async (req, res) => {
+  try {
+    await sendTelegramTestMessage();
+    res.json({ ok: true, message: 'Telegram 测试消息已发送' });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 server.listen(PORT, () => {
